@@ -16,7 +16,7 @@ rl.on("line", (line) => {
   try {
     if (endProgram) {
       expression += line.trimEnd().slice(0, -1);
-      console.log("Validation: ", validate(JSON.parse(expression)));
+      console.log("Validation: ", validate(expression));
       expression = "";
       rl.setPrompt(">> ");
       rl.prompt();
