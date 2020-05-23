@@ -30,7 +30,9 @@ export type TextContent = Content<string>;
 // Specifies the get-set command prefix
 // For fetching the current value: <CustomCommand> <BindableContent>
 // For setting the current value: <CustomCommand> <BindableContent> <NewValue>
-export type BindableContent = Content<number[]>;
+export type BindableContent = Content<CommandDef>;
+
+export type CommandDef = [string, number | number[]];
 
 // An atomic unit that represents a renderable unit - usually a Control
 export type Item<A> = Label & Conditional & A;
@@ -56,7 +58,7 @@ export type Toggle = {
 export type Dropdown = {
   j;
   type: "dropdown";
-  options: (string | [number, string])[];
+  options: (string | [string, number])[];
 };
 
 export function validate(expr: string) {
