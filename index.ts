@@ -1,6 +1,6 @@
 const { version } = require("./package.json");
 const readline = require("readline");
-import { validate, Type } from "./instr";
+import { parse, Type } from "./instr";
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
@@ -16,7 +16,7 @@ rl.on("line", (line) => {
   try {
     if (endProgram) {
       expression += line.trimEnd().slice(0, -1);
-      console.log("Validation: ", validate(expression));
+      console.log("Parsed: ", JSON.stringify(parse(expression), undefined, 2));
       expression = "";
       rl.setPrompt(">> ");
       rl.prompt();
@@ -26,7 +26,9 @@ rl.on("line", (line) => {
     }
   } catch (e) {
     console.error(e);
-    rl.close();
+    expression = "";
+    rl.setPrompt(">> ");
+    rl.prompt();
   }
 }).on("close", () => {
   process.exit();

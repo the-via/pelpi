@@ -39,7 +39,6 @@ enum Op {
 
 function cleanAndSplit(expr: string) {
   const cleanedStr = expr.replace(/\s+/gi, Op.Seperator);
-  console.log(cleanedStr);
   return cleanedStr.split("");
 }
 
@@ -87,12 +86,19 @@ function findSubExprEndIndex(arr) {
   throw new Error(`Unbalanced brackets in: ${arr}`);
 }
   
+function evalNot(notSwitch: boolean) {
+  return notSwitch ? [] : [Op.Not];
+}
+
 function tokenizer({ op, partial }, rest: string[]) {
   const [car, ...cdr] = rest;
   if (rest.length === 0) {
     switch (op) {
       case Op.NumCont: return [parseInt(partial)];
-      default: return [];
+      case Op.ExprStart: return [];
+      default: {
+        throw new Error(`Unexpected character encountered at end while in state: ${op}`);
+      }
     }
   }
   switch (op) {
@@ -111,8 +117,24 @@ function tokenizer({ op, partial }, rest: string[]) {
       } else if (isSubExprStart(car)) {
         const endIndex = findSubExprEndIndex(cdr);
         return [tokenizer({op: Op.ExprStart, partial: ''}, cdr.slice(0, endIndex)),...tokenizer({op: Op.ExprStart, partial: ''}, cdr.slice(endIndex+1))];
+      } else if (car === Op.Not) {
+        return tokenizer({op: Op.Not, partial:false},cdr);
       } else {
         throw new Error(`Unexpected character encountered in expr decl: ${car}`);
+      }
+    }
+    case Op.Not: {
+      if (isNum(car)) {
+        return [...evalNot(partial),...tokenizer({ op: Op.NumCont, partial: car }, cdr)];
+      } else if (isVarStart(car)) {
+        return [...evalNot(partial),...tokenizer({ op: Op.VarDecl, partial: "" }, cdr)];
+      } else if (isSubExprStart(car)) {
+        const endIndex = findSubExprEndIndex(cdr);
+        return [...evalNot(partial),...[tokenizer({op: Op.ExprStart, partial: ''}, cdr.slice(0, endIndex)),...tokenizer({op: Op.ExprStart, partial: ''}, cdr.slice(endIndex+1))]];
+      } else if (car === Op.Not) {
+        return tokenizer({op: Op.Not, partial:!partial},cdr);
+      } else {
+        throw new Error(`Unexpected character encountered after !: ${car}`);
       }
     }
     case Op.VarDecl: {
@@ -148,8 +170,13 @@ function tokenizer({ op, partial }, rest: string[]) {
   }
 }
 
-export function validate(expr: string) {
-  const stream = cleanAndSplit(expr);
-  console.log(tokenizer({ op: Op.ExprStart, partial: "" }, stream));
-  return true;
+export function parse(expr: string) {
+  const charStream = cleanAndSplit(expr);
+  const tokenizedStream = tokenizer({ op: Op.ExprStart, partial: "" }, charStream);
+  validate(tokenizedStream);
+  return tokenizedStream;
+}
+
+export function validate(parseTree: any[]) {
+  
 }
