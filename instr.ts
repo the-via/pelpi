@@ -15,6 +15,13 @@ export type Type = {};
   || - Or
 */
 
+enum Token {
+  Operator,
+  Value,
+  InfixOp,
+  Expr
+}
+
 enum Op {
   ExprStart,
   NumCont,
@@ -48,6 +55,22 @@ function isTwoCharOp(op: any) {
 
 function isOneCharOp(op: any) {
   return [Op.LT, Op.GT].includes(op);
+}
+
+function isOp(op: any) {
+  return isTwoCharOp(op.op) || isOneCharOp(op.op);
+}
+
+function isValue(op: any) {
+  return typeof op === "number" || op.id !== undefined;
+}
+
+function isInfix(op: any) {
+  return op === Op.Not;
+}
+
+function isExpr(op: any) {
+  return Array.isArray(op);
 }
 
 function isVarStart(op: any) {
@@ -170,13 +193,79 @@ function tokenizer({ op, partial }, rest: string[]) {
   }
 }
 
+
+export function validate(prevToken: Token, parseTree: any[]) {
+  const [car,...cdr] = parseTree;
+  if (parseTree.length === 0) {
+    if (prevToken === Token.Value) {
+      return [];
+    }
+    throw new Error(`Unexpected token at end of expr: ${prevToken}`);
+  }
+  switch (prevToken) {
+    case Token.InfixOp:
+    case Token.Operator:
+    case Token.Expr: {
+      if (isInfix(car)) {
+        return [
+          {mod:Op.Not, val: validate(Token.InfixOp, [cdr[0]])},
+          ...validate(Token.Value, cdr.slice(1))];
+      } else if (isExpr(car)) {
+        return [validate(Token.Expr, car), ...validate(Token.Value,cdr)];
+      } else if (isValue(car)) {
+        return [car, ...validate(Token.Value,cdr)];
+      } else {
+        throw new Error(`Unexpected start of expr: ${car}`);
+      }
+    }
+    case Token.Value: {
+      if (isOp(car)) {
+        return [car, ...validate(Token.Operator, cdr)];
+      } else {
+        throw new Error(`Unexpected token following Value: ${car}`);
+      }
+    }
+  }
+  throw new Error("unreachable");
+}
+
+function findSplitOp(arr: any[]) {
+  const opPrecedence = [Op.Or, Op.And, Op.NotEq, Op.Eq, Op.GTE, Op.GT, Op.LTE, Op.LT];
+  const chosenOp = opPrecedence.findIndex(op => arr.some(token => token.op === op));
+  return chosenOp === -1 ? -1 : arr.findIndex(token => token.op === opPrecedence[chosenOp]);
+}
+
+function buildAST(expr){
+  if (Array.isArray(expr)) {
+    const opIndex = findSplitOp(expr);
+    if (opIndex === -1) {
+      if (expr.length === 1)  {
+        return buildAST(expr[0]);
+      } else {
+        throw new Error("Expression has multiple entries but no operators");
+      }
+    } else {
+      return {
+        op: expr[opIndex].op,
+        arg: [
+          buildAST(expr.slice(0, opIndex)),
+          buildAST(expr.slice(opIndex + 1))
+        ]
+      };
+    }
+  } else if (typeof expr === 'number') {
+    return expr;
+  } else if (typeof expr.id === "string") {
+    return {op: 'get', arg: [expr.id, expr.prop ? expr.prop : 0]};
+  } else if (expr.mod === Op.Not) {
+    return {op: Op.Not, arg: buildAST(expr.val)};
+  } else {
+    throw new Error(`Error building AST while encountering: ${JSON.stringify(expr)}`);
+  }
+}
+
 export function parse(expr: string) {
   const charStream = cleanAndSplit(expr);
   const tokenizedStream = tokenizer({ op: Op.ExprStart, partial: "" }, charStream);
-  validate(tokenizedStream);
-  return tokenizedStream;
-}
-
-export function validate(parseTree: any[]) {
-  
+  return buildAST(validate(Token.Expr,tokenizedStream));
 }
