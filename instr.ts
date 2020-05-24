@@ -41,35 +41,39 @@ function cleanAndSplit(expr: string) {
   return cleanedStr.split("");
 }
 
-function tokenizer({op, partial}, rest: string[]) {
-    if (rest.length === 0) {
-        return [];
-    }
+function tokenizer({ op, partial }, rest: string[]) {
+  if (rest.length === 0) {
+    return [];
+  }
   const [car, ...cdr] = rest;
   switch (op) {
     case Op.ExprStart: {
-        if (/[0-9]/.test(car)) {
-            return tokenizer({op: Op.NumCont, partial: car}, cdr);
-        } else if (car === Op.Seperator) {
-            return tokenizer({op: Op.ExprStart, partial: ""}, cdr);
-        }
+      if (/[0-9]/.test(car)) {
+        return tokenizer({ op: Op.NumCont, partial: car }, cdr);
+      } else if (car === Op.Seperator) {
+        return tokenizer({ op: Op.ExprStart, partial: "" }, cdr);
+      }
     }
     case Op.NumCont: {
-        if (/[0-9]/.test(car) && cdr.length !== 0) {
-          return tokenizer({op: Op.NumCont, partial: partial + car}, cdr);
-        }
-        else if (/[0-9]/.test(car) && cdr.length === 0) {
-            return [parseInt(partial+car,10), ...tokenizer({op: Op.ExprStart, partial: ""}, rest)];
-        }
-        else {
-            return [parseInt(partial,10), ...tokenizer({op: Op.ExprStart, partial: ""}, rest)];
-        }
+      if (/[0-9]/.test(car) && cdr.length !== 0) {
+        return tokenizer({ op: Op.NumCont, partial: partial + car }, cdr);
+      } else if (/[0-9]/.test(car) && cdr.length === 0) {
+        return [
+          parseInt(partial + car, 10),
+          ...tokenizer({ op: Op.ExprStart, partial: "" }, rest),
+        ];
+      } else {
+        return [
+          parseInt(partial, 10),
+          ...tokenizer({ op: Op.ExprStart, partial: "" }, rest),
+        ];
+      }
     }
   }
 }
 
 export function validate(expr: string) {
   const stream = cleanAndSplit(expr);
-    console.log(tokenizer({op: Op.ExprStart, partial: ""}, stream));
+  console.log(tokenizer({ op: Op.ExprStart, partial: "" }, stream));
   return true;
 }
