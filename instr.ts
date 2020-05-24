@@ -332,7 +332,7 @@ function evalOp(ast, state) {
   throw new Error(`Op lookup failed: ${op}`);
 }
 
-function evalAST(ast, state) {
+export function evalAST(ast, state) {
   if (ast.op !== undefined) {
     return evalOp(ast,state);
   } else if (typeof ast === 'number' || typeof ast === "boolean" || typeof ast ==="string") {
