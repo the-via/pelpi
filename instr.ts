@@ -27,6 +27,7 @@ enum Op {
   NumCont,
   VarDecl,
   Op,
+  Get = "get",
   Seperator = " ",
   Or = "||",
   And = "&&",
@@ -235,36 +236,115 @@ function findSplitOp(arr: any[]) {
   return chosenOp === -1 ? -1 : arr.findIndex(token => token.op === opPrecedence[chosenOp]);
 }
 
-function buildAST(expr){
+type ASTPair = {
+  ast: any;
+  state: {[key: string]: number};
+}
+
+function mergeWithArrays(state1, state2) {
+  return Object.keys(state2).reduce((p,n) => {
+    p[n] = [...state2[n], ...(p[n] || [])];
+    return p;
+  }, {...state1});
+}
+
+function buildAST(expr, state = {}): ASTPair {
   if (Array.isArray(expr)) {
     const opIndex = findSplitOp(expr);
     if (opIndex === -1) {
       if (expr.length === 1)  {
-        return buildAST(expr[0]);
+        return buildAST(expr[0], state);
       } else {
         throw new Error("Expression has multiple entries but no operators");
       }
     } else {
+      const arg1 = buildAST(expr.slice(0, opIndex), state);
+      const arg2 = buildAST(expr.slice(opIndex + 1), state);
       return {
-        op: expr[opIndex].op,
-        arg: [
-          buildAST(expr.slice(0, opIndex)),
-          buildAST(expr.slice(opIndex + 1))
-        ]
+        ast: {
+          op: expr[opIndex].op,
+          arg: [
+            arg1.ast,
+            arg2.ast
+          ]
+        },
+        state: mergeWithArrays(arg1.state,arg2.state)
       };
     }
   } else if (typeof expr === 'number') {
-    return expr;
+    return {ast: expr, state};
   } else if (typeof expr.id === "string") {
-    return {op: 'get', arg: [expr.id, expr.prop ? expr.prop : 0]};
+    return {
+      ast: {op: Op.Get, arg: [expr.id, expr.prop ? expr.prop : 0]},
+      state: {
+        ...state,
+        [expr.id]: [
+          expr.prop,
+          ...(state[expr.id] || [])
+        ]
+      }
+    };
   } else if (expr.mod === Op.Not) {
-    return {op: Op.Not, arg: buildAST(expr.val)};
+    const arg = buildAST(expr.val, state);
+    return {
+      ast: {op: Op.Not, arg: [arg.ast]},
+      state: {
+        ...state,
+        ...arg.state
+      }
+    };
   } else {
     throw new Error(`Error building AST while encountering: ${JSON.stringify(expr)}`);
   }
 }
 
-export function parse(expr: string) {
+const opGet = (state, arg1, arg2) => state[arg1][arg2];
+const opOr = (_,arg1, arg2) => arg1 || arg2;
+const opAnd = (_,arg1, arg2) => arg1 && arg2;
+const opNot = (_,arg1) => !arg1;
+const opNotEq = (_,arg1, arg2) => (arg1 != arg2);
+const opEq = (_,arg1, arg2) => (arg1 == arg2);
+const opLT = (_,arg1, arg2) => (arg1 < arg2);
+const opLTE = (_,arg1, arg2) => (arg1 <= arg2);
+const opGT = (_,arg1, arg2) => (arg1 > arg2);
+const opGTE = (_,arg1, arg2) => (arg1 >= arg2);
+
+const OpMap = {
+  [Op.Get]: opGet,
+  [Op.Or]: opOr,
+  [Op.And]: opAnd,
+  [Op.Not]: opNot,
+  [Op.NotEq]: opNotEq,
+  [Op.Eq]: opEq,
+  [Op.GT]: opGT,
+  [Op.GTE]: opGTE,
+  [Op.LT]: opLT,
+  [Op.LTE]: opLTE,
+};
+
+function evalOp(ast, state) {
+  const {op, arg} = ast;
+  const fn = OpMap[op];
+  if (fn) {
+    console.log(arg);
+    return fn(state,...arg.map(ast=> evalAST(ast, state)));
+  }
+  throw new Error(`Op lookup failed: ${op}`);
+}
+
+function evalAST(ast, state) {
+  if (ast.op !== undefined) {
+    return evalOp(ast,state);
+  } else if (typeof ast === 'number' || typeof ast === "boolean" || typeof ast ==="string") {
+    return ast;
+  }
+}
+
+export function evalExpr(expr: string, state) {
+  return evalAST(parseExpr(expr).ast, state);
+}
+
+export function parseExpr(expr: string) {
   const charStream = cleanAndSplit(expr);
   const tokenizedStream = tokenizer({ op: Op.ExprStart, partial: "" }, charStream);
   return buildAST(validate(Token.Expr,tokenizedStream));
