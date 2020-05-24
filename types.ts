@@ -6,7 +6,7 @@ export type RawExpr = string;
 
 // A property that when present, provides the option of not evaluating the block it represents
 export type Conditional = {
-  hideIf?: RawExpr;
+  showIf?: RawExpr;
 };
 
 // A structure that allows a grouping of items, generally useful for conditionally rendering a block of controls
@@ -54,7 +54,6 @@ export type Toggle = {
 };
 
 export type Dropdown = {
-  j;
   type: "dropdown";
   options: (string | [string, number])[];
 };
