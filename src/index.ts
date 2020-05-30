@@ -1,5 +1,6 @@
-const { version } = require("./package.json");
+const { version } = require("../package.json");
 const readline = require("readline");
+export * from "./instr";
 import { evalExpr, Type } from "./instr";
 console.log(`Pelpi Version: ${version}`);
 
@@ -9,7 +10,7 @@ const rl = readline.createInterface({
   prompt: ">> ",
 });
 
-const handleLine = (accStatement, answer) => {
+const handleLine = (accStatement: string, answer: string) => {
   const statementEnd = answer.trim().slice(-1)[0] === ";";
   const currLine = statementEnd ? answer.trim().slice(0, -1) : answer;
   const statement = `${accStatement}${currLine}`;
@@ -25,11 +26,11 @@ const handleLine = (accStatement, answer) => {
 };
 
 function startStatement() {
-  rl.question(">> ", (line) => handleLine("", line));
+  rl.question(">> ", (line: string) => handleLine("", line));
 }
 
 function continueStatement(prevString: string) {
-  rl.question("", (line) => handleLine(prevString, line));
+  rl.question("", (line: string) => handleLine(prevString, line));
 }
 
 startStatement();
