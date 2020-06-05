@@ -381,10 +381,7 @@ function buildAST(expr: any, state = {}): ASTPair {
       ast: { op: Op.Get, arg: [expr.id, expr.prop ? expr.prop : 0] },
       state: {
         ...state,
-        [expr.id]: [
-          expr.prop,
-          ...(((state as any)[expr.id] as number[]) || []),
-        ],
+        [expr.id]: Math.max(0, expr.prop),
       },
     };
   } else if (expr.mod === Op.Not) {
@@ -437,7 +434,6 @@ function evalOp(ast: AST, state: VarState) {
   const { op, arg } = ast;
   const fn = OpMap[op as keyof Op] as any;
   if (fn) {
-    console.log(arg);
     return fn(state, ...arg.map((ast: any) => evalAST(ast, state)));
   }
   throw new Error(`Op lookup failed: ${op}`);

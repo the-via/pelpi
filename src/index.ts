@@ -1,7 +1,7 @@
 const { version } = require("../package.json");
 const readline = require("readline");
 export * from "./instr";
-import { evalExpr, Type } from "./instr";
+import { evalExpr, parseExpr, Type } from "./instr";
 console.log(`Pelpi Version: ${version}`);
 
 const rl = readline.createInterface({
@@ -10,16 +10,32 @@ const rl = readline.createInterface({
   prompt: ">> ",
 });
 
+const parseVector = (expr: string) => {
+  return expr.split(/\s+/).map(ex => parseInt(ex));
+}
+
+const requestVars = ([car, ...cdr]: string[], callback: (res: {[r: string]: number[]}) => void, acc = {}) => {
+  if (car === undefined) {
+    return callback(acc);
+  }
+  rl.question(`[${car}]: `, (line: string) => (requestVars(cdr, callback, {...acc, [car]: parseVector(line)})));
+}
+
 const handleLine = (accStatement: string, answer: string) => {
   const statementEnd = answer.trim().slice(-1)[0] === ";";
   const currLine = statementEnd ? answer.trim().slice(0, -1) : answer;
   const statement = `${accStatement}${currLine}`;
   if (statementEnd) {
-    console.log(
-      "Parsed: ",
-      JSON.stringify(evalExpr(statement, { a: [1, 2] }), undefined, 2)
-    );
-    startStatement();
+    const {ast, state} = parseExpr(statement);
+    const keys = Object.keys(state);
+    console.log('Needed vars:',keys.join(', '));
+    const vars = requestVars(keys, (vars: {[a:string]: number[]}) => {
+      console.log(
+        "Evaluated expr:",
+        evalExpr(statement, vars)
+      );
+      startStatement();
+    });
   } else {
     continueStatement(statement);
   }
