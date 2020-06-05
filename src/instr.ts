@@ -344,6 +344,16 @@ function mergeWithArrays(state1: any, state2: any) {
   );
 }
 
+function mergeWithMax(state1: any, state2: any) {
+  return Object.keys(state2).reduce(
+    (p, n) => {
+      p[n] = Math.max(0, p[n], state2[n]);
+      return p;
+    },
+    { ...state1 }
+  );
+}
+
 function buildAST(expr: any, state = {}): ASTPair {
   if (Array.isArray(expr)) {
     const opIndex = findSplitOp(expr);
@@ -361,7 +371,7 @@ function buildAST(expr: any, state = {}): ASTPair {
           op: expr[opIndex].op,
           arg: [arg1.ast, arg2.ast],
         },
-        state: mergeWithArrays(arg1.state, arg2.state),
+        state: mergeWithMax(arg1.state, arg2.state),
       };
     }
   } else if (typeof expr === "number") {
