@@ -296,6 +296,12 @@ function mergeWithArrays(state1, state2) {
         return p;
     }, __assign({}, state1));
 }
+function mergeWithMax(state1, state2) {
+    return Object.keys(state2).reduce(function (p, n) {
+        p[n] = Math.max(0, p[n], state2[n]);
+        return p;
+    }, __assign({}, state1));
+}
 function buildAST(expr, state) {
     var _a;
     if (state === void 0) { state = {}; }
@@ -317,7 +323,7 @@ function buildAST(expr, state) {
                     op: expr[opIndex].op,
                     arg: [arg1.ast, arg2.ast],
                 },
-                state: mergeWithArrays(arg1.state, arg2.state),
+                state: mergeWithMax(arg1.state, arg2.state),
             };
         }
     }
@@ -327,9 +333,7 @@ function buildAST(expr, state) {
     else if (typeof expr.id === "string") {
         return {
             ast: { op: Op.Get, arg: [expr.id, expr.prop ? expr.prop : 0] },
-            state: __assign(__assign({}, state), (_a = {}, _a[expr.id] = __spreadArrays([
-                expr.prop
-            ], (state[expr.id] || [])), _a)),
+            state: __assign(__assign({}, state), (_a = {}, _a[expr.id] = Math.max(0, expr.prop), _a)),
         };
     }
     else if (expr.mod === Op.Not) {
@@ -369,7 +373,6 @@ function evalOp(ast, state) {
     var op = ast.op, arg = ast.arg;
     var fn = OpMap[op];
     if (fn) {
-        console.log(arg);
         return fn.apply(void 0, __spreadArrays([state], arg.map(function (ast) { return evalAST(ast, state); })));
     }
     throw new Error("Op lookup failed: " + op);

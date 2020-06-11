@@ -1,4 +1,5 @@
 const { version } = require("../package.json");
+const chalk = require('chalk');
 const readline = require("readline");
 export * from "./instr";
 import { evalExpr, parseExpr, Type } from "./instr";
@@ -7,7 +8,7 @@ console.log(`Pelpi Version: ${version}`);
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
-  prompt: ">> ",
+  prompt: chalk.yellow(">> "),
 });
 
 const parseVector = (expr: string) => {
@@ -18,7 +19,7 @@ const requestVars = ([car, ...cdr]: string[], callback: (res: {[r: string]: numb
   if (car === undefined) {
     return callback(acc);
   }
-  rl.question(`[${car}]: `, (line: string) => (requestVars(cdr, callback, {...acc, [car]: parseVector(line)})));
+  rl.question(chalk.magenta(`[${car}]: `), (line: string) => (requestVars(cdr, callback, {...acc, [car]: parseVector(line)})));
 }
 
 const handleLine = (accStatement: string, answer: string) => {
@@ -28,10 +29,9 @@ const handleLine = (accStatement: string, answer: string) => {
   if (statementEnd) {
     const {ast, state} = parseExpr(statement);
     const keys = Object.keys(state);
-    console.log('Needed vars:',keys.join(', '));
     const vars = requestVars(keys, (vars: {[a:string]: number[]}) => {
       console.log(
-        "Evaluated expr:",
+        chalk.green("-> "),
         evalExpr(statement, vars)
       );
       startStatement();
@@ -42,7 +42,7 @@ const handleLine = (accStatement: string, answer: string) => {
 };
 
 function startStatement() {
-  rl.question(">> ", (line: string) => handleLine("", line));
+  rl.question(chalk.yellow(">> "), (line: string) => handleLine("", line));
 }
 
 function continueStatement(prevString: string) {

@@ -1,7 +1,7 @@
 export type Type = {};
 
 /* Operator Precedence - Hi to Lo
-  {} - Substitution 
+  {} - Substitution
   .  - Access
   () - Grouping
   !  - Not
