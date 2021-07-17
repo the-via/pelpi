@@ -17,8 +17,8 @@
     "util": "^0.12.1"
   },
   "scripts": {
-    "repl": "ts-node ./src/index.ts",
-    "repl-dev": "ts-node-dev --respawn ./src/index.ts",
+    "repl": "ts-node ./src/cli.ts",
+    "repl-dev": "ts-node-dev --respawn ./src/cli.ts",
     "build": "tsc"
   },
   "devDependencies": {
